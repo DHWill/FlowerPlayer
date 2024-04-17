@@ -21,9 +21,10 @@ bool isPaused;
 bool speedUp = false;
 bool slowDown = false;
 RampGenerator rampGen, rampGenColor, rampGenTransform;
-SensorMan sensorMan;
+
 
 typedef struct{
+	SensorMan *sensorMan = nullptr;
 	StateMachine *stateMachine = nullptr;
 	GstElement *videosink = nullptr;
 	GstElement *demuxer = nullptr;
@@ -33,15 +34,13 @@ typedef struct{
 	GstElement *gleffects = nullptr;
 	GMainLoop *loop = nullptr;
 	float *rate = nullptr;
-//	std::unique_ptr<std::thread> sensorThread = nullptr;
-//	std::mutex mutex;
 
 } PlayerData;
 
 
 /*
- * GLImage sink appears to work very well at 1920x1920, whereas wayland sink drops a lot of frames
- * Wayland sink appears to work better @ 4K whereas wherasd is drops frames at 1920x1920
+ * GLImage sink appears to work very well at 1920x1920, whereas waylandsink drops a lot of frames
+ * Wayland sink appears to work better @ 4K whereas whereas GLImagesink drops a lot of frames
  */
 
 /*=====================================================================================
@@ -83,7 +82,7 @@ static void update_value(GstElement *color_balancer, float value, const gchar* p
 
 static bool updateStateMachine(gpointer _playerData){
 	PlayerData *playerData = (PlayerData*) _playerData;
-	int p = sensorMan.getPositionValue();
+	int p = playerData->sensorMan->getPositionValue();
 	std::cout << "position" << p << std::endl;
 	if (p==-1) {
 		playerData->stateMachine->setIsActive(true);
@@ -229,7 +228,7 @@ static gboolean query_position(gpointer *_playerData){
 
     	//-------------------Sensor------------------------------
 		if(outOfFrameCounter >= fps/2){
-			if(sensorMan.getPositionValue() != 0){
+			if(playerData->sensorMan->getPositionValue() != 0){
 				slowDown = false;
 			}
 			else {
@@ -303,14 +302,18 @@ static gboolean query_position(gpointer *_playerData){
 
 int main(int argc, char *argv[]) {
 
+    PlayerData *playerData = g_new(PlayerData, 1);
+
+	SensorMan _sensorMan;
+	SensorMan *sensorManPt = &_sensorMan;
+	playerData->sensorMan = sensorManPt;
+	playerData->sensorMan->startSensors();
+
 	rampGen.vSpeed = 0.1;
 	rampGenColor.vSpeed = 0.04;
-	sensorMan.startSensors();
-
 
  	StateMachine _stateMachine;
 	StateMachine *stateMachinePt = &_stateMachine;
-    PlayerData *playerData = g_new(PlayerData, 1);
 
     float _rate = 1.0;
     float *rate = &_rate;
