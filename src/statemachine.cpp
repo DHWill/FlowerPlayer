@@ -98,7 +98,7 @@ void StateMachine::setTargetPosition(int position){
 
 //    targetPosition = possiblePositions[position % possiblePositions.size()];	//fix this, currently there are 2 positions for flowers: 3 for animals
 	targetPosition = position;
-	if((tempEarlyExits.size() > 0) && (lastTargetPosition != targetPosition)){
+	if((tempEarlyExits.size() > 0)){
 		if(targetPosition != currentState.position){
 			std::cout << "QueuingEarlyExit: " << tempEarlyExits[0].name << std::endl;
 			lastTargetPosition = targetPosition;
@@ -124,17 +124,10 @@ StateMachine::State StateMachine::updateState(){
     for(size_t i = 0; i < states.size(); i ++){
         State state = states[i];
         if(state.position == currentState.targetPosition){
-//        	_nextState = state;
-            if(state.targetPosition == targetPosition){
-                _nextState = state;
-                if(state.name != currentState.name){
-                	_nextState = state;
-                	if(state.isActive == isActive){
-                		_nextState = state;
-                    	break;
-                	}
-                }
-            }
+        	if(state.name != currentState.name){
+        		_nextState = state;
+        		break;
+        	}
         }
     }
     return _nextState;
@@ -180,12 +173,14 @@ void StateMachine::updateSegment(){
 		isExitingEarly = false;
 		std::cout <<  "start:" << _segment.startTime << "end:" << _segment.endTime << std::endl;
 		currentSegment = _segment;
+		currentPosition = currentState.targetPosition;
 		return;
 //		return _segment;
 	}
 
 	if(tempEarlyExits.size() == size_t(0)){ //end of cycles, or no earlyExits in current clip
 		currentState = updateState();
+
 		getTempEarlyExits(currentState.earlyExits);
 		std::cout << std::endl;
 		std::cout <<  "NewState:" << currentState.name << "| EarlyExits1: " << tempEarlyExits.size() << std::endl;
@@ -203,8 +198,9 @@ void StateMachine::updateSegment(){
 	}
 	else{
 		_segment.startTime = tempEarlyExits[0].transitionFromParent;// -1?notwork	+1 not work
+		std::cout << currentState.name << "| EarlyExitsLeft: " << tempEarlyExits.size() << " " << tempEarlyExits[0].name << std::endl;
 		tempEarlyExits.pop_front();
-		std::cout << currentState.name << "| EarlyExitsLeft: " << tempEarlyExits.size() << std::endl;
+
 
 		if(tempEarlyExits.size() > size_t(0)){		//playToEndOnLastCycle
 			_segment.endTime = tempEarlyExits[0].transitionFromParent;	//-1 not work

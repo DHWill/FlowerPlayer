@@ -37,6 +37,7 @@ public:
 	uint8_t gridWid = N_WIDTH;
 
 	int positionToSend;
+	int distanceToSend = 0;
 	float errorNumber = -1;
 
 
@@ -60,6 +61,7 @@ public:
     int sensorReading = -1;
     void setup();
     int getPositionValue();
+    int getPositionDistance();
     void startSensors();
     TofImager _sensor;
     std::unique_ptr<std::thread> sensorThread = nullptr;

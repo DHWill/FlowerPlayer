@@ -186,11 +186,30 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 	                  positionAverage = 2;
 	                }
 
+	                //Distances
+	                int personDistance = -1;
+	                float checkDistance = xAverage[positionToSend];
+
+	                //close
+	                if((checkDistance > 0.3) && (checkDistance < 0.6)){
+	                	personDistance = 2;
+	                }
+	                //near
+	                if((checkDistance > 0.6) && (checkDistance < 1.0)){
+	                	personDistance = 1;
+	                }
+	                //far
+	                if(checkDistance > 1.0){
+	                	personDistance = 0;
+	                }
+
 	                if((xScore[flattestPosition] < 6)){
 	                  positionAverage = -1;
 	                }
+
 	     mutex.lock();
 	     positionToSend = positionAverage;
+	     distanceToSend = personDistance;
 	     mutex.unlock();
 
 //	     std::cout << positionToSend << std::endl;
@@ -205,6 +224,9 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 	return status;
 }
 
+int SensorMan::getPositionDistance(){
+	return _sensor.distanceToSend;
+}
 
 int SensorMan::getPositionValue(){
 	return _sensor.positionToSend;
