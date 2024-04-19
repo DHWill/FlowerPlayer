@@ -202,7 +202,8 @@ static gboolean query_position(gpointer *_playerData){
 
     if(gst_element_query_position(playerData->pipeline, GST_FORMAT_TIME, &pos)){
     	gint64 frame = pos / gstInterval;
-    	g_value_set_string(playerData->textToOverlay, g_strdup_printf("%i", frame));
+    	gchar* debugText = g_strconcat(playerData->stateMachine->currentState.name.c_str(), g_strdup_printf(": %i", frame), nullptr);
+    	g_value_set_string(playerData->textToOverlay, debugText);
     	g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
 
 
