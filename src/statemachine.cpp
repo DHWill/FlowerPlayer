@@ -148,17 +148,28 @@ void StateMachine::updateSegment(){
 	StateMachine::Segment _segment;
 
 	if(init){
-		currentState = states[0];	//this is the starting animation
+		currentState = updateState();
+		getTempEarlyExits(currentState.earlyExits);
+
 		lastTargetPosition = currentState.position;
 		targetPosition = currentState.position;
 		std::cout <<  "init2:" << currentState.name << "| EarlyExits0: " << tempEarlyExits.size() << std::endl;
 		_segment.startTime = currentState.startTime;
 		_segment.endTime = currentState.endTime;
 		_segment.name = currentState.name;
+
+		if(tempEarlyExits.size() > size_t(0)){	//has early exits in selected clip
+			_segment.startTime = currentState.startTime;
+			_segment.endTime = tempEarlyExits[0].transitionFromParent;
+			_segment.name = currentState.name;
+			std::cout << currentState.name << "| EarlyExitsInThisClip: " << tempEarlyExits.size() << std::endl;
+//			tempEarlyExits.pop_front();		//without creates offset
+		}
+
 		isExitingEarly = false;
 		std::cout <<  "init :" << _segment.startTime << "end:" << _segment.endTime << std::endl;
 		currentSegment = _segment;
-		init = false;
+//		init = false;
 		return;
 //		return _segment;
 	}
