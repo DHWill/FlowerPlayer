@@ -63,7 +63,7 @@ static void update_rate(gpointer _playerData) {
 
 
     if(gst_element_send_event(playerData->demuxer, seek_event)){
-//    	std::cout << "chnagingRate: " << rate << std::endl;
+//    	std::cout << "chnagingRate: " << playerData->rate << std::endl;
     }
     else{
     	std::cout << "could not change rate" << std::endl;
@@ -73,6 +73,7 @@ static void update_rate(gpointer _playerData) {
 static bool updateStateMachine(gpointer _playerData){
 	PlayerData *playerData = (PlayerData*) _playerData;
 	int distance = playerData->sensorMan->getPositionDistance();
+//	std::cout << "distance " << distance << std::endl;
 	switch(distance) {
 	  case 0:
 		//Far
@@ -160,6 +161,7 @@ static gboolean query_position(gpointer *_playerData){
     	//-------------------Sensor------------------------------
 		if(outOfFrameCounter >= fps/2){
 			int distance = playerData->sensorMan->getPositionDistance();
+//			std::cout << "distance " << distance << std::endl;
 			if(distance < 1){
 				slowDown = true;
 			}
@@ -187,17 +189,17 @@ static gboolean query_position(gpointer *_playerData){
 //					    g_value_set_float(playerData->rateVal, rampGen.posXI);
 //					    g_object_set_property(G_OBJECT(playerData->videorate), "rate", playerData->rateVal);
 //						playerData->rate = rampGen.posXI;
-//						playerData->rate = 0.5;
-//						update_rate(_playerData);
+						playerData->rate = rampGen.posXI;
+						update_rate(_playerData);
 					}
 				}
 				else{
-//					if(rampGen.loop(1.0)){
+					if(rampGen.loop(1.0)){
 //					    g_value_set_float(playerData->rateVal, rampGen.posXI);
 //					    g_object_set_property(G_OBJECT(playerData->videorate), "rate", playerData->rateVal);
-//						playerData->rate = 1.0;
-//						update_rate(_playerData);
-//					}
+						playerData->rate = rampGen.posXI;
+						update_rate(_playerData);
+					}
 				}
 			}
     	}
@@ -386,7 +388,7 @@ int main(int argc, char *argv[]) {
     gst_element_link(playerData->decoder, capsfilter);
     gst_element_link(capsfilter, playerData->videosink);
     std::cout << "Link Rest of elements" << std::endl;
-    gst_element_link_many ( h264parse ,playerData->decoder, queue0 ,imxvideoconvert_g2d, playerData->textOverlay, queue1, playerData->videosink, NULL);
+    gst_element_link_many(h264parse ,playerData->decoder, queue0 ,imxvideoconvert_g2d, playerData->textOverlay, queue1, playerData->videosink, NULL);
     g_signal_connect(playerData->demuxer, "pad-added", G_CALLBACK (on_pad_added), h264parse);
 
     std::cout << "Set bus Message Watch" << std::endl;
