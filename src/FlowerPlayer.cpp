@@ -57,7 +57,7 @@ static void on_pad_added (GstElement *element, GstPad *pad, gpointer data){
 }
 static void update_rate(gpointer _playerData) {
 	PlayerData *playerData = (PlayerData*) _playerData;
-    GstEvent *seek_event = gst_event_new_seek(playerData->rate, GST_FORMAT_TIME, (GstSeekFlags)(GST_SEEK_FLAG_INSTANT_RATE_CHANGE),
+    GstEvent *seek_event = gst_event_new_seek(playerData->rate, GST_FORMAT_TIME, (GstSeekFlags)(GST_SEEK_FLAG_INSTANT_RATE_CHANGE ),
     											GST_SEEK_TYPE_NONE, 0,
 												GST_SEEK_TYPE_NONE, 0);
 
@@ -94,10 +94,10 @@ static bool updateStateMachine(gpointer _playerData){
 
 static void seek_to_frame(gpointer _playerData) {
 	PlayerData *playerData = (PlayerData*) _playerData;
-	GstSeekFlags seekFlags = (GstSeekFlags)(GST_SEEK_FLAG_KEY_UNIT | GST_SEEK_FLAG_SNAP_AFTER | GST_SEEK_FLAG_SEGMENT);
+	GstSeekFlags seekFlags = (GstSeekFlags)(GST_SEEK_FLAG_KEY_UNIT | GST_SEEK_FLAG_SNAP_AFTER | GST_SEEK_FLAG_SEGMENT | GST_SEEK_FLAG_TRICKMODE_NO_AUDIO | GST_SEEK_FLAG_TRICKMODE_FORWARD_PREDICTED);
 
 	if(playerData->stateMachine->getIsInit()){
-		seekFlags = (GstSeekFlags)(GST_SEEK_FLAG_KEY_UNIT | GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_SEGMENT );
+		seekFlags = (GstSeekFlags)(GST_SEEK_FLAG_KEY_UNIT | GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_SEGMENT | GST_SEEK_FLAG_TRICKMODE_NO_AUDIO | GST_SEEK_FLAG_TRICKMODE_FORWARD_PREDICTED);
 	}
 
     gint64 time_nanoseconds_start = (playerData->stateMachine->currentSegment.startTime) * gstInterval;
@@ -109,6 +109,7 @@ static void seek_to_frame(gpointer _playerData) {
 
     if(gst_element_send_event(playerData->demuxer, seek_event)){
     	std::cout << "Seeking! StartFrame:" << playerData->stateMachine->currentSegment.startTime << " EndFrame :" << playerData->stateMachine->currentSegment.endTime << playerData->rate << std::endl;
+    	update_rate(playerData);
 //    	update_rate(playerData->videosink);
     }
     else{
@@ -127,6 +128,12 @@ static gboolean on_end_of_seek(GstBus *bus, GstMessage *message, gpointer *_play
 			updateStateMachine(_playerData);
 			playerData->stateMachine->updateSegment();
 			seek_to_frame(_playerData);
+			break;
+		}
+		case GST_MESSAGE_EOS: {
+//			updateStateMachine(_playerData);
+//			playerData->stateMachine->updateSegment();
+//			seek_to_frame(_playerData);
 			break;
 		}
 		default:
@@ -176,13 +183,13 @@ static gboolean query_position(gpointer *_playerData){
 			//------------------SpeedRamp------------------------------
 			if(outOfFrameCounter % ((fps/16) + 1) == 0){
 				if(slowDown){
-//					if(rampGen.loop(0.5)){
+					if(rampGen.loop(0.5)){
 //					    g_value_set_float(playerData->rateVal, rampGen.posXI);
 //					    g_object_set_property(G_OBJECT(playerData->videorate), "rate", playerData->rateVal);
 //						playerData->rate = rampGen.posXI;
 //						playerData->rate = 0.5;
 //						update_rate(_playerData);
-//					}
+					}
 				}
 				else{
 //					if(rampGen.loop(1.0)){
@@ -280,7 +287,7 @@ int main(int argc, char *argv[]) {
     GstElement *capsfilter = gst_element_factory_make("capsfilter", "capsfilter");
     playerData->textOverlay = gst_element_factory_make("textoverlay", "textoverlay");
 
-
+    playerData->segment = gst_segment_new ();
 
 
     std::cout << "CreateCaps" << std::endl;
@@ -319,10 +326,10 @@ int main(int argc, char *argv[]) {
     gst_value_array_append_value(&new_dimensions, &top);
     gst_value_array_append_value(&new_dimensions, &width);
     gst_value_array_append_value(&new_dimensions, &height);
-    g_object_set_property(G_OBJECT(playerData->videosink), "render-rectangle", &new_dimensions);
 
 
     std::cout << "Set:Width/Height" << std::endl;
+    g_object_set_property(G_OBJECT(playerData->videosink), "render-rectangle", &new_dimensions);
 //    g_object_set_property(G_OBJECT(playerData->videosink), "window-height", &height);
 //    g_object_set_property(G_OBJECT(playerData->videosink), "window-width", &width);
 
@@ -330,7 +337,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Set:Sync" << std::endl;
     GValue sync = G_VALUE_INIT;
     g_value_init(&sync, G_TYPE_INT);
-    g_value_set_int(&sync, 0);
+    g_value_set_int(&sync, 1);
     g_object_set_property(G_OBJECT(playerData->videosink), "sync", &sync);
 
 //    std::cout << "Set:Rate" << std::endl;
@@ -347,6 +354,12 @@ int main(int argc, char *argv[]) {
 //    g_value_init(&qos, G_TYPE_INT);
 //    g_value_set_int(&qos, 1);
 //    g_object_set_property(G_OBJECT(playerData->videosink), "qos", &sync);
+
+    std::cout << "Set:Qos for dodgy V4l2Dec" << std::endl;
+    GValue qos = G_VALUE_INIT;
+    g_value_init(&qos, G_TYPE_INT);
+    g_value_set_int(&qos, 1);
+    g_object_set_property(G_OBJECT(playerData->decoder), "automatic-request-sync-points", &qos);
 
     std::cout << "Set:Queue" << std::endl;
     GValue queueName = G_VALUE_INIT;
@@ -373,8 +386,8 @@ int main(int argc, char *argv[]) {
     gst_element_link(playerData->decoder, capsfilter);
     gst_element_link(capsfilter, playerData->videosink);
     std::cout << "Link Rest of elements" << std::endl;
-    gst_element_link_many (queue0, h264parse, playerData->decoder, imxvideoconvert_g2d, queue1, playerData->textOverlay, playerData->videorate, playerData->videosink, NULL);
-    g_signal_connect(playerData->demuxer, "pad-added", G_CALLBACK (on_pad_added), queue0);
+    gst_element_link_many ( h264parse ,playerData->decoder, queue0 ,imxvideoconvert_g2d, playerData->textOverlay, queue1, playerData->videosink, NULL);
+    g_signal_connect(playerData->demuxer, "pad-added", G_CALLBACK (on_pad_added), h264parse);
 
     std::cout << "Set bus Message Watch" << std::endl;
     GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(playerData->pipeline));

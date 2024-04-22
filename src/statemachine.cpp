@@ -148,7 +148,8 @@ void StateMachine::updateSegment(){
 	StateMachine::Segment _segment;
 
 	if(init){
-		currentState = updateState();
+		currentState = states[0];
+//		currentState = updateState();
 		getTempEarlyExits(currentState.earlyExits);
 
 		lastTargetPosition = currentState.position;
@@ -191,7 +192,6 @@ void StateMachine::updateSegment(){
 
 	if(tempEarlyExits.size() == size_t(0)){ //end of cycles, or no earlyExits in current clip
 		currentState = updateState();
-
 		getTempEarlyExits(currentState.earlyExits);
 		std::cout << std::endl;
 		std::cout <<  "NewState:" << currentState.name << "| EarlyExits1: " << tempEarlyExits.size() << std::endl;
