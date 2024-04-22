@@ -196,7 +196,7 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 	                	personDistance = 2;
 	                }
 	                //near
-	                if((checkDistance >= 0.3) && (checkDistance < 1.0)){
+	                if((checkDistance >= 0.3) && (checkDistance < 0.8)){
 	                	personDistance = 1;
 	                }
 	                //far
@@ -207,7 +207,7 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 	                if((xScore[flattestPosition] < 6)){
 	                  positionAverage = -1;
 	                }
-	                std::cout << personDistance << std::endl;
+//	                std::cout << personDistance << std::endl;
 
 	     mutex.lock();
 	     positionToSend = positionAverage;

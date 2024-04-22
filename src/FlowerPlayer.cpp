@@ -152,15 +152,15 @@ static gboolean query_position(gpointer *_playerData){
 	gint64 pos;
 
     if(gst_element_query_position(playerData->pipeline, GST_FORMAT_TIME, &pos)){
+    	int distance = playerData->sensorMan->getPositionDistance();
     	gint64 frame = pos / gstInterval;
-    	gchar* debugText = g_strconcat(playerData->stateMachine->currentState.name.c_str(), g_strdup_printf(": %i", frame), nullptr);
+    	gchar* debugText = g_strconcat(playerData->stateMachine->currentState.name.c_str(), g_strdup_printf(": %i", frame), g_strdup_printf("Sensor : %i", distance), nullptr);
     	g_value_set_string(playerData->textToOverlay, debugText);
     	g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
 
 
     	//-------------------Sensor------------------------------
 		if(outOfFrameCounter >= fps/2){
-			int distance = playerData->sensorMan->getPositionDistance();
 //			std::cout << "distance " << distance << std::endl;
 			if(distance < 1){
 				slowDown = true;
@@ -388,7 +388,7 @@ int main(int argc, char *argv[]) {
     gst_element_link(playerData->decoder, capsfilter);
     gst_element_link(capsfilter, playerData->videosink);
     std::cout << "Link Rest of elements" << std::endl;
-    gst_element_link_many(h264parse ,playerData->decoder, queue0 ,imxvideoconvert_g2d, playerData->textOverlay, queue1, playerData->videosink, NULL);
+    gst_element_link_many(h264parse ,playerData->decoder, queue0 ,imxvideoconvert_g2d, queue1, playerData->textOverlay, playerData->videosink, NULL);
     g_signal_connect(playerData->demuxer, "pad-added", G_CALLBACK (on_pad_added), h264parse);
 
     std::cout << "Set bus Message Watch" << std::endl;
