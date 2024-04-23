@@ -15,7 +15,6 @@ gint64 gstInterval = GST_SECOND / fps;
 
 
 gint64 lastFrame = 0;
-bool speedUp = false;
 bool slowDown = false;
 RampGenerator rampGen, rampGenColor, rampGenTransform;
 
@@ -32,9 +31,9 @@ typedef struct{
 	GValue *textToOverlay = nullptr;
 	GMainLoop *loop = nullptr;
 
-
 	float rate = 1.0;
-	float lastRate = 1.0;
+	float rateToQueue = 1.0;
+	bool canChangeRate = false;
 
 } PlayerData;
 
@@ -109,10 +108,11 @@ static void seek_to_frame(gpointer _playerData) {
                                               GST_SEEK_TYPE_SET, time_nanoseconds_start,
                                               GST_SEEK_TYPE_SET, time_nanoseconds_end);
 
-//   	update_rate(playerData);
+
     if(gst_element_send_event(playerData->pipeline, seek_event)){
     	update_rate(playerData);
     	std::cout << "Seeking! StartFrame:" << playerData->stateMachine->currentSegment.startTime << " EndFrame :" << playerData->stateMachine->currentSegment.endTime << " Rate: " << playerData->rate << std::endl;
+		playerData->canChangeRate = true;
     }
     else{
     	std::cout << "Seek Failed!" << std::endl;
@@ -127,6 +127,7 @@ static gboolean on_end_of_seek(GstBus *bus, GstMessage *message, gpointer *_play
 
 	switch (GST_MESSAGE_TYPE(message)){
 		case GST_MESSAGE_SEGMENT_DONE: {
+			playerData->canChangeRate = false;
 			updateStateMachine(_playerData);
 			playerData->stateMachine->updateSegment();
 			seek_to_frame(_playerData);
@@ -167,16 +168,8 @@ static gboolean query_position(gpointer *_playerData){
 
     	//-------------------Sensor------------------------------
 		if(outOfFrameCounter >= fps/2){
-//			std::cout << "distance " << distance << std::endl;
-			if(distance < 1){
-				slowDown = true;
-			}
-			else {
-				slowDown = false;
-			}
 			outOfFrameCounter = 0;
 	    }
-
 
     	if(frame != lastFrame){
     		//------------------Init----------------------------------
@@ -189,11 +182,10 @@ static gboolean query_position(gpointer *_playerData){
 
 
 			//------------------SpeedRamp------------------------------
-			if(outOfFrameCounter % ((fps/16) + 1) == 0){
-				if(wasSlow != slowDown){
-//					slowDown ? playerData->rate = 0.5 : playerData->rate = 1.0;
-					wasSlow = slowDown;
-//					update_rate(playerData);
+			if(outOfFrameCounter % ((fps/16) + 1) == (fps/16)){
+				if((playerData->rateToQueue != playerData->rate) && (playerData->canChangeRate)){
+					playerData->rate = playerData->rateToQueue;
+					update_rate(playerData);
 				}
 			}
     	}
@@ -215,16 +207,12 @@ static gboolean handle_keyboard (GIOChannel * source, GIOCondition cond, gpointe
     switch (g_ascii_tolower (str[0])) {
     case 'f':
     	std::cout << "F" << std::endl;
-		playerData->rate = 1.0;
-		update_rate(_playerData);
-    	slowDown = false;
+		playerData->rateToQueue = 1.0;
     	break;
 
     case 's':
 		std::cout << "S" << std::endl;
-    	slowDown = true;
-		playerData->rate = 0.5;
-		update_rate(_playerData);
+		playerData->rateToQueue = 0.5;
     	break;
     default:
             break;
@@ -255,6 +243,8 @@ int main(int argc, char *argv[]) {
 
     playerData->stateMachine=stateMachinePt;
     playerData->rate= 1.0;
+    playerData->rateToQueue= 1.0;
+    playerData->canChangeRate = false;
 
 	std::string fileLocation = "";
     if (argc < 3) {
@@ -276,8 +266,6 @@ int main(int argc, char *argv[]) {
     GstElement *queue0 = gst_element_factory_make("queue", "queue0");
     GstElement *h264parse = gst_element_factory_make("h264parse", "h264parse");
     GstElement *imxvideoconvert_g2d = gst_element_factory_make("imxvideoconvert_g2d", "imxvideoconvert_g2d");
-//    playerData->videosink = gst_element_factory_make("waylandsink", "waylandsink");
-//    playerData->videorate = gst_element_factory_make("videorate", "videorate");
     playerData->videosink = gst_element_factory_make("glimagesink", "glimagesink");
     playerData->decoder = gst_element_factory_make("v4l2h264dec", "v4l2h264dec");
     GstElement *capsfilter = gst_element_factory_make("capsfilter", "capsfilter");
@@ -362,7 +350,7 @@ int main(int argc, char *argv[]) {
     g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
 
     std::cout << "AddElements" << std::endl;
-    gst_bin_add_many(GST_BIN(playerData->pipeline), filesrc, playerData->demuxer, queue0, h264parse, capsfilter, queue2, playerData->decoder, imxvideoconvert_g2d, queue1, playerData->videosink, NULL);
+    gst_bin_add_many(GST_BIN(playerData->pipeline), filesrc, playerData->demuxer, h264parse, capsfilter, playerData->decoder, imxvideoconvert_g2d, queue1, playerData->videosink, NULL);
 
     /* we link the elements together */
     /* file-source -> ogg-demuxer ~> vorbis-decoder -> converter -> alsa-output */
