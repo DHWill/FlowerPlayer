@@ -33,7 +33,6 @@ typedef struct{
 
 	float rate = 1.0;
 	float rateToQueue = 1.0;
-	bool canChangeRate = false;
 
 } PlayerData;
 
@@ -67,7 +66,6 @@ static void update_rate(gpointer _playerData) {
 
     if(gst_element_send_event(playerData->pipeline, seek_event)){
     	std::cout << "Change Rate " << playerData->rate << std::endl;
-    	playerData->canChangeRate = true;
     }
     else{
     	std::cout << "could not change rate" << std::endl;
@@ -131,7 +129,6 @@ static gboolean on_end_of_seek(GstBus *bus, GstMessage *message, gpointer *_play
 
 	switch (GST_MESSAGE_TYPE(message)){
 		case GST_MESSAGE_SEGMENT_DONE: {
-			playerData->canChangeRate = false;
 			updateStateMachine(_playerData);
 			playerData->stateMachine->updateSegment();
 			seek_to_frame(_playerData);
@@ -160,14 +157,6 @@ static gboolean query_position(gpointer *_playerData){
 
     if(gst_element_query_position(playerData->pipeline, GST_FORMAT_TIME, &pos)){
     	gint64 frame = pos / gstInterval;
-
-
-    	//-------------------Sensor------------------------------
-		if(outOfFrameCounter >= fps/2){
-			playerData->sensorMan->getPositionDistance() < 1 ? playerData->rateToQueue = 0.5 : playerData->rateToQueue = 1.0;
-			outOfFrameCounter = 0;
-	    }
-
     	if(frame != lastFrame){
     		//------------------Init----------------------------------
 			if (playerData->stateMachine->getIsInit()) {
@@ -178,13 +167,14 @@ static gboolean query_position(gpointer *_playerData){
 			}
 
 			//------------------ChangePlaybackRate--------------------
-			if(outOfFrameCounter % ((fps/4) + 1) == 0){
-				if((playerData->rateToQueue != playerData->rate) && (playerData->canChangeRate)){
+			if(frame > playerData->stateMachine->currentSegment.startTime + 1){		//This needs to be fixed, updating rate of playback can only happen after a new seek
+				playerData->sensorMan->getPositionDistance() < 1 ? playerData->rateToQueue = 0.5 : playerData->rateToQueue = 1.0;
+				if((playerData->rateToQueue != playerData->rate)){
 					playerData->rate = playerData->rateToQueue;
 					update_rate(playerData);
 				}
 			}
-
+			lastFrame = frame;
     		//------------------Debug-------------------------------
 //    		std::string earlyExit = "";
 //    		if(playerData->stateMachine->tempEarlyExits.size() > 0){
@@ -194,7 +184,6 @@ static gboolean query_position(gpointer *_playerData){
 //    		g_value_set_string(playerData->textToOverlay, debugText);
 //    		g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
     	}
-    outOfFrameCounter ++;
     }
     return TRUE;
 }
@@ -248,7 +237,6 @@ int main(int argc, char *argv[]) {
     playerData->stateMachine=stateMachinePt;
     playerData->rate= 1.0;
     playerData->rateToQueue= 1.0;
-    playerData->canChangeRate = false;
 
 	std::string fileLocation = "";
     if (argc < 3) {
