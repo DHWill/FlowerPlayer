@@ -37,7 +37,7 @@ public:
 	uint8_t gridWid = N_WIDTH;
 
 	int positionToSend;
-	int distanceToSend = 0;
+	int distanceToSend = -1;
 	float errorNumber = -1;
 
 
@@ -45,6 +45,7 @@ public:
 	float noiseSubtraction[N_WIDTH][N_WIDTH][KNT_FRAMES] = { { {} } };  //check for change
 	float resultGrid[N_WIDTH][N_WIDTH] = { {} };                        //check for change
 	int highestPositionBuffer[KNT_FRAMES] = { int(-1) };
+	int distanceBuffer[KNT_FRAMES] = { int(-1) };
 	float xScore[N_WIDTH] = {};
 	float xAverage[N_WIDTH] = {};
 	int positions[N_WIDTH * N_WIDTH] = { int(-1) };

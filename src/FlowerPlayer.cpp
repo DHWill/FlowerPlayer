@@ -27,14 +27,14 @@ typedef struct{
 	GstElement *demuxer = nullptr;
 	GstElement *decoder= nullptr;
 	GstElement *pipeline = nullptr;
-	GstElement *videorate = nullptr;
 	GValue *rateVal = nullptr;
 	GstElement *textOverlay = nullptr;
 	GValue *textToOverlay = nullptr;
 	GMainLoop *loop = nullptr;
-	GstSegment *segment = nullptr;
+
 
 	float rate = 1.0;
+	float lastRate = 1.0;
 
 } PlayerData;
 
@@ -57,17 +57,18 @@ static void on_pad_added (GstElement *element, GstPad *pad, gpointer data){
 }
 static void update_rate(gpointer _playerData) {
 	PlayerData *playerData = (PlayerData*) _playerData;
-    GstEvent *seek_event = gst_event_new_seek(playerData->rate, GST_FORMAT_TIME, (GstSeekFlags)(GST_SEEK_FLAG_INSTANT_RATE_CHANGE ),
+    GstEvent *seek_event = gst_event_new_seek(playerData->rate, GST_FORMAT_TIME, (GstSeekFlags)(GST_SEEK_FLAG_INSTANT_RATE_CHANGE),
     											GST_SEEK_TYPE_NONE, 0,
 												GST_SEEK_TYPE_NONE, 0);
 
 
-    if(gst_element_send_event(playerData->demuxer, seek_event)){
-//    	std::cout << "chnagingRate: " << playerData->rate << std::endl;
+    if(gst_element_send_event(playerData->pipeline, seek_event)){
+    	std::cout << "Change Rate " << playerData->rate << std::endl;
     }
     else{
     	std::cout << "could not change rate" << std::endl;
     }
+//    return gst_element_send_event(playerData->pipeline, seek_event);
 }
 
 static bool updateStateMachine(gpointer _playerData){
@@ -108,10 +109,10 @@ static void seek_to_frame(gpointer _playerData) {
                                               GST_SEEK_TYPE_SET, time_nanoseconds_start,
                                               GST_SEEK_TYPE_SET, time_nanoseconds_end);
 
-    if(gst_element_send_event(playerData->demuxer, seek_event)){
-    	std::cout << "Seeking! StartFrame:" << playerData->stateMachine->currentSegment.startTime << " EndFrame :" << playerData->stateMachine->currentSegment.endTime << playerData->rate << std::endl;
+//   	update_rate(playerData);
+    if(gst_element_send_event(playerData->pipeline, seek_event)){
     	update_rate(playerData);
-//    	update_rate(playerData->videosink);
+    	std::cout << "Seeking! StartFrame:" << playerData->stateMachine->currentSegment.startTime << " EndFrame :" << playerData->stateMachine->currentSegment.endTime << " Rate: " << playerData->rate << std::endl;
     }
     else{
     	std::cout << "Seek Failed!" << std::endl;
@@ -147,6 +148,7 @@ static gboolean on_end_of_seek(GstBus *bus, GstMessage *message, gpointer *_play
 
 
 int outOfFrameCounter = 0;
+bool wasSlow = false;
 static gboolean query_position(gpointer *_playerData){
 	PlayerData *playerData = (PlayerData*) _playerData;
 	gint64 pos;
@@ -154,9 +156,13 @@ static gboolean query_position(gpointer *_playerData){
     if(gst_element_query_position(playerData->pipeline, GST_FORMAT_TIME, &pos)){
     	int distance = playerData->sensorMan->getPositionDistance();
     	gint64 frame = pos / gstInterval;
-    	gchar* debugText = g_strconcat(playerData->stateMachine->currentState.name.c_str(), g_strdup_printf(": %i", frame), g_strdup_printf("Sensor : %i", distance), nullptr);
-    	g_value_set_string(playerData->textToOverlay, debugText);
-    	g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
+//    	std::string earlyExit = "";
+//    	if(playerData->stateMachine->tempEarlyExits.size() > 0){
+//    		earlyExit = playerData->stateMachine->tempEarlyExits[0].name;
+//    	}
+//    	gchar* debugText = g_strconcat(playerData->stateMachine->currentState.name.c_str(), g_strdup_printf(": %i", frame), g_strdup_printf(" | Sensor : %i", distance), g_strdup_printf(" | EarlyExit : %s", earlyExit.c_str()), nullptr);
+//    	g_value_set_string(playerData->textToOverlay, debugText);
+//    	g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
 
 
     	//-------------------Sensor------------------------------
@@ -184,22 +190,10 @@ static gboolean query_position(gpointer *_playerData){
 
 			//------------------SpeedRamp------------------------------
 			if(outOfFrameCounter % ((fps/16) + 1) == 0){
-				if(slowDown){
-					if(rampGen.loop(0.5)){
-//					    g_value_set_float(playerData->rateVal, rampGen.posXI);
-//					    g_object_set_property(G_OBJECT(playerData->videorate), "rate", playerData->rateVal);
-//						playerData->rate = rampGen.posXI;
-						playerData->rate = rampGen.posXI;
-						update_rate(_playerData);
-					}
-				}
-				else{
-					if(rampGen.loop(1.0)){
-//					    g_value_set_float(playerData->rateVal, rampGen.posXI);
-//					    g_object_set_property(G_OBJECT(playerData->videorate), "rate", playerData->rateVal);
-						playerData->rate = rampGen.posXI;
-						update_rate(_playerData);
-					}
+				if(wasSlow != slowDown){
+//					slowDown ? playerData->rate = 0.5 : playerData->rate = 1.0;
+					wasSlow = slowDown;
+//					update_rate(playerData);
 				}
 			}
     	}
@@ -213,8 +207,7 @@ static gboolean handle_keyboard (GIOChannel * source, GIOCondition cond, gpointe
 	PlayerData *playerData = (PlayerData*) _playerData;
     gchar *str = NULL;
 
-    if (g_io_channel_read_line (source, &str, NULL, NULL,
-                               NULL) != G_IO_STATUS_NORMAL) {
+    if (g_io_channel_read_line (source, &str, NULL, NULL,NULL) != G_IO_STATUS_NORMAL) {
             std::cout << str[0] << std::endl;
             return TRUE;
     }
@@ -222,7 +215,7 @@ static gboolean handle_keyboard (GIOChannel * source, GIOCondition cond, gpointe
     switch (g_ascii_tolower (str[0])) {
     case 'f':
     	std::cout << "F" << std::endl;
-		playerData->rate = 1;
+		playerData->rate = 1.0;
 		update_rate(_playerData);
     	slowDown = false;
     	break;
@@ -278,18 +271,18 @@ int main(int argc, char *argv[]) {
     playerData->pipeline = gst_pipeline_new("pipeline");
     GstElement *filesrc = gst_element_factory_make("filesrc", "filesrc");
     playerData->demuxer = gst_element_factory_make("qtdemux", "qtdemux");
+    GstElement *queue2 = gst_element_factory_make("queue", "queue2");
     GstElement *queue1 = gst_element_factory_make("queue", "queue1");
     GstElement *queue0 = gst_element_factory_make("queue", "queue0");
     GstElement *h264parse = gst_element_factory_make("h264parse", "h264parse");
     GstElement *imxvideoconvert_g2d = gst_element_factory_make("imxvideoconvert_g2d", "imxvideoconvert_g2d");
 //    playerData->videosink = gst_element_factory_make("waylandsink", "waylandsink");
-    playerData->videorate = gst_element_factory_make("videorate", "videorate");
+//    playerData->videorate = gst_element_factory_make("videorate", "videorate");
     playerData->videosink = gst_element_factory_make("glimagesink", "glimagesink");
     playerData->decoder = gst_element_factory_make("v4l2h264dec", "v4l2h264dec");
     GstElement *capsfilter = gst_element_factory_make("capsfilter", "capsfilter");
     playerData->textOverlay = gst_element_factory_make("textoverlay", "textoverlay");
 
-    playerData->segment = gst_segment_new ();
 
 
     std::cout << "CreateCaps" << std::endl;
@@ -332,9 +325,6 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Set:Width/Height" << std::endl;
     g_object_set_property(G_OBJECT(playerData->videosink), "render-rectangle", &new_dimensions);
-//    g_object_set_property(G_OBJECT(playerData->videosink), "window-height", &height);
-//    g_object_set_property(G_OBJECT(playerData->videosink), "window-width", &width);
-
 
     std::cout << "Set:Sync" << std::endl;
     GValue sync = G_VALUE_INIT;
@@ -349,13 +339,6 @@ int main(int argc, char *argv[]) {
 //    g_value_set_int(playerData->rateVal, 60);
 //    g_object_set_property(G_OBJECT(playerData->videorate), "max-rate", playerData->rateVal);
 
-    //USE
-
-//    std::cout << "Set:Qos for dodgy V4l2Dec" << std::endl;
-//    GValue qos = G_VALUE_INIT;
-//    g_value_init(&qos, G_TYPE_INT);
-//    g_value_set_int(&qos, 1);
-//    g_object_set_property(G_OBJECT(playerData->videosink), "qos", &sync);
 
     std::cout << "Set:Qos for dodgy V4l2Dec" << std::endl;
     GValue qos = G_VALUE_INIT;
@@ -364,10 +347,10 @@ int main(int argc, char *argv[]) {
     g_object_set_property(G_OBJECT(playerData->decoder), "automatic-request-sync-points", &qos);
 
     std::cout << "Set:Queue" << std::endl;
-    GValue queueName = G_VALUE_INIT;
-    g_value_init(&queueName, G_TYPE_STRING);
-    g_value_set_string(&queueName, "queue1");
-    g_object_set_property(G_OBJECT(queue1), "name", &queueName);
+    GValue maxBuffers = G_VALUE_INIT;
+    g_value_init(&maxBuffers, G_TYPE_INT);
+    g_value_set_int(&maxBuffers, 400);
+    g_object_set_property(G_OBJECT(queue1), "max-size-buffers", &maxBuffers);
 
     std::cout << "Set:File" << std::endl;
     g_object_set(G_OBJECT(filesrc), "location", fileLocation.c_str(), NULL);
@@ -379,7 +362,7 @@ int main(int argc, char *argv[]) {
     g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
 
     std::cout << "AddElements" << std::endl;
-    gst_bin_add_many(GST_BIN(playerData->pipeline), filesrc, playerData->demuxer, queue0, h264parse, capsfilter, playerData->decoder, imxvideoconvert_g2d, queue1, playerData->videorate, playerData->textOverlay, playerData->videosink, NULL);
+    gst_bin_add_many(GST_BIN(playerData->pipeline), filesrc, playerData->demuxer, queue0, h264parse, capsfilter, queue2, playerData->decoder, imxvideoconvert_g2d, queue1, playerData->videosink, NULL);
 
     /* we link the elements together */
     /* file-source -> ogg-demuxer ~> vorbis-decoder -> converter -> alsa-output */
@@ -388,7 +371,7 @@ int main(int argc, char *argv[]) {
     gst_element_link(playerData->decoder, capsfilter);
     gst_element_link(capsfilter, playerData->videosink);
     std::cout << "Link Rest of elements" << std::endl;
-    gst_element_link_many(h264parse ,playerData->decoder, queue0 ,imxvideoconvert_g2d, queue1, playerData->textOverlay, playerData->videosink, NULL);
+    gst_element_link_many(h264parse ,playerData->decoder ,imxvideoconvert_g2d, queue1, playerData->videosink, NULL);
     g_signal_connect(playerData->demuxer, "pad-added", G_CALLBACK (on_pad_added), h264parse);
 
     std::cout << "Set bus Message Watch" << std::endl;

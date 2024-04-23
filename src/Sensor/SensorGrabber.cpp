@@ -175,6 +175,19 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 	                positionAverage /= checkedFrames;
 
 
+
+	                //Get Distance Average
+	                float personDistance = xAverage[positionAverage];
+//	                int checkedFramesDist = 0;
+//	                for (int x = 0; x < KNT_FRAMES; x++) {
+//	                  if (distanceBuffer[x] != -1) {
+//	                    positionAverage += highestPositionBuffer[x];
+//	                    checkedFramesDist++;
+//	                  }
+//	                }
+//	                personDistance /= checkedFramesDist;
+
+
 	                //Only require left middle right (012) out of 0123 1/2 = front
 	                if (positionAverage == 0 || positionAverage == 1 || positionAverage == 2) {
 	                  positionAverage = 0;
@@ -186,26 +199,25 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 	                  positionAverage = 2;
 	                }
 
-	                //Distances
-	                int personDistance = -1;
-	                float checkDistance = xAverage[highestScorePosition];
+
 
 
 	                //close
-	                if((checkDistance <= 0.3 )&& (checkDistance != errorNumber) ){
+	                if((personDistance  <= 0.3 )&& (personDistance != errorNumber) ){
 	                	personDistance = 2;
 	                }
 	                //near
-	                if((checkDistance >= 0.3) && (checkDistance < 0.8)){
+	                if((personDistance  >= 0.3) && (personDistance  < 0.8)){
 	                	personDistance = 1;
 	                }
 	                //far
-	                if((checkDistance > 2.0) || (checkDistance == errorNumber)){
+	                if((personDistance  > 2.0) || (personDistance == errorNumber)){
 	                	personDistance = 0;
 	                }
 
 	                if((xScore[flattestPosition] < 6)){
 	                  positionAverage = -1;
+	                  personDistance = -1;
 	                }
 //	                std::cout << personDistance << std::endl;
 
