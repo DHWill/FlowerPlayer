@@ -63,6 +63,7 @@ static void update_rate(gpointer _playerData) {
 
     if(gst_element_send_event(playerData->pipeline, seek_event)){
     	std::cout << "Change Rate " << playerData->rate << std::endl;
+    	playerData->canChangeRate = true;
     }
     else{
     	std::cout << "could not change rate" << std::endl;
@@ -112,7 +113,6 @@ static void seek_to_frame(gpointer _playerData) {
     if(gst_element_send_event(playerData->pipeline, seek_event)){
     	update_rate(playerData);
     	std::cout << "Seeking! StartFrame:" << playerData->stateMachine->currentSegment.startTime << " EndFrame :" << playerData->stateMachine->currentSegment.endTime << " Rate: " << playerData->rate << std::endl;
-		playerData->canChangeRate = true;
     }
     else{
     	std::cout << "Seek Failed!" << std::endl;
@@ -155,19 +155,12 @@ static gboolean query_position(gpointer *_playerData){
 	gint64 pos;
 
     if(gst_element_query_position(playerData->pipeline, GST_FORMAT_TIME, &pos)){
-    	int distance = playerData->sensorMan->getPositionDistance();
     	gint64 frame = pos / gstInterval;
-//    	std::string earlyExit = "";
-//    	if(playerData->stateMachine->tempEarlyExits.size() > 0){
-//    		earlyExit = playerData->stateMachine->tempEarlyExits[0].name;
-//    	}
-//    	gchar* debugText = g_strconcat(playerData->stateMachine->currentState.name.c_str(), g_strdup_printf(": %i", frame), g_strdup_printf(" | Sensor : %i", distance), g_strdup_printf(" | EarlyExit : %s", earlyExit.c_str()), nullptr);
-//    	g_value_set_string(playerData->textToOverlay, debugText);
-//    	g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
 
 
     	//-------------------Sensor------------------------------
 		if(outOfFrameCounter >= fps/2){
+//			playerData->sensorMan->getPositionDistance() < 1 ? playerData->rateToQueue = 0.5 : playerData->rateToQueue = 1.0;
 			outOfFrameCounter = 0;
 	    }
 
@@ -180,18 +173,25 @@ static gboolean query_position(gpointer *_playerData){
 				return TRUE;
 			}
 
-
-			//------------------SpeedRamp------------------------------
-			if(outOfFrameCounter % ((fps/16) + 1) == (fps/16)){
+			//------------------ChangePlaybackRate--------------------
+			if(outOfFrameCounter % ((fps/4) + 1) == (fps/4)){
 				if((playerData->rateToQueue != playerData->rate) && (playerData->canChangeRate)){
 					playerData->rate = playerData->rateToQueue;
 					update_rate(playerData);
 				}
 			}
+
+    		//------------------Debug-------------------------------
+//    		std::string earlyExit = "";
+//    		if(playerData->stateMachine->tempEarlyExits.size() > 0){
+//    			earlyExit = playerData->stateMachine->tempEarlyExits[0].name;
+//    		}
+//    		gchar* debugText = g_strconcat(playerData->stateMachine->currentState.name.c_str(), g_strdup_printf(": %i", frame), g_strdup_printf(" | Sensor : %i", distance), g_strdup_printf(" | EarlyExit : %s", earlyExit.c_str()), nullptr);
+//    		g_value_set_string(playerData->textToOverlay, debugText);
+//    		g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
     	}
     outOfFrameCounter ++;
     }
-//    outOfFrameCounter %= fps;
     return TRUE;
 }
 
