@@ -41,6 +41,10 @@ typedef struct{
 /*
  * GLImage sink appears to work very well at 1920x1920, whereas waylandsink drops a lot of frames
  * Wayland sink appears to work better @ 4K whereas whereas GLImagesink drops a lot of frames
+ *
+ * Updating the rate can only happen with ONE queue in pipe, otherwise other thread doesnt match up with rate change
+ * During segment seeking to keep an updated rate MUST be a matching to previous playback rate and sent to the pipe at the start (not before) a new segment event push
+ * Updating the playback rate during playback can only happen AFTER the new segment is playing in the pipe (After the new segment update rate)
  */
 
 /*=====================================================================================
@@ -160,7 +164,7 @@ static gboolean query_position(gpointer *_playerData){
 
     	//-------------------Sensor------------------------------
 		if(outOfFrameCounter >= fps/2){
-//			playerData->sensorMan->getPositionDistance() < 1 ? playerData->rateToQueue = 0.5 : playerData->rateToQueue = 1.0;
+			playerData->sensorMan->getPositionDistance() < 1 ? playerData->rateToQueue = 0.5 : playerData->rateToQueue = 1.0;
 			outOfFrameCounter = 0;
 	    }
 
@@ -174,7 +178,7 @@ static gboolean query_position(gpointer *_playerData){
 			}
 
 			//------------------ChangePlaybackRate--------------------
-			if(outOfFrameCounter % ((fps/4) + 1) == (fps/4)){
+			if(outOfFrameCounter % ((fps/4) + 1) == 0){
 				if((playerData->rateToQueue != playerData->rate) && (playerData->canChangeRate)){
 					playerData->rate = playerData->rateToQueue;
 					update_rate(playerData);
