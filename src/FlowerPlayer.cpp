@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Set:Sync" << std::endl;
     GValue sync = G_VALUE_INIT;
     g_value_init(&sync, G_TYPE_INT);
-    g_value_set_int(&sync, 1);
+    g_value_set_int(&sync, 0);
     g_object_set_property(G_OBJECT(playerData->videosink), "sync", &sync);
 
 //    std::cout << "Set:Rate" << std::endl;
@@ -376,9 +376,9 @@ int main(int argc, char *argv[]) {
 
 
     //Keybaord THIS HAS TO BE REMOVED IF RAN AS SERVICE
-    GIOChannel *io_stdin;
-    io_stdin = g_io_channel_unix_new (fileno (stdin));
-    g_io_add_watch (io_stdin, G_IO_IN, (GIOFunc) handle_keyboard, playerData);
+//    GIOChannel *io_stdin;
+//    io_stdin = g_io_channel_unix_new (fileno (stdin));
+//    g_io_add_watch (io_stdin, G_IO_IN, (GIOFunc) handle_keyboard, playerData);
     //Keybaord THIS HAS TO BE REMOVED IF RAN AS SERVICE
 
 
