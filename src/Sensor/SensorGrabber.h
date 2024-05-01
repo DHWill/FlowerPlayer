@@ -37,8 +37,11 @@ public:
 	uint8_t gridWid = N_WIDTH;
 
 	int positionToSend;
+	bool inRangeToSend = false;
+	bool isInRange = false;
 	int distanceToSend = -1;
 	float errorNumber = -1;
+
 
 
 	float sensorMesauements[N_WIDTH][N_WIDTH] = { {} };                 //check for change
@@ -64,6 +67,7 @@ public:
     int getPositionValue();
     int getPositionDistance();
     void startSensors();
+    bool getIsInRange();
     TofImager _sensor;
     std::unique_ptr<std::thread> sensorThread = nullptr;
 };

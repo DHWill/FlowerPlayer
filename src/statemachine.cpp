@@ -98,7 +98,7 @@ void StateMachine::setTargetPosition(int position){
 
 //    targetPosition = possiblePositions[position % possiblePositions.size()];	//fix this, currently there are 2 positions for flowers: 3 for animals
 	targetPosition = position;
-	if((tempEarlyExits.size() > 0)){
+	if((tempEarlyExits.size() > 0)){		//Has early exits in queue and wants to change state
 		if(targetPosition != currentState.position){
 			std::cout << "QueuingEarlyExit: " << tempEarlyExits[0].name << std::endl;
 			lastTargetPosition = targetPosition;
@@ -124,7 +124,7 @@ StateMachine::State StateMachine::updateState(){
     for(size_t i = 0; i < states.size(); i ++){
         State state = states[i];
         if(state.position == currentState.targetPosition){
-        	if(state.name != currentState.name){
+        	if(state.name != currentState.name){		//State to state not interactive
         		_nextState = state;
         		break;
         	}

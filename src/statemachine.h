@@ -13,7 +13,6 @@
 #include <thread>
 #include <chrono>
 //#define JSON_IS_AMALGAMATION
-#include "Sensor.h"
 
 
 class StateMachine
@@ -73,7 +72,6 @@ public:
     int earlyExitCount = 0;
     bool isExtendedState = false;
     bool isActive = false;
-    Sensor sensor;
     std::vector<int> possiblePositions;
 
 

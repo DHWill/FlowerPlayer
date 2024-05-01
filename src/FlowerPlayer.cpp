@@ -58,41 +58,31 @@ static void on_pad_added (GstElement *element, GstPad *pad, gpointer data){
     gst_object_unref (sinkpad);
 }
 static void update_rate(gpointer _playerData) {
-	PlayerData *playerData = (PlayerData*) _playerData;
-    GstEvent *seek_event = gst_event_new_seek(playerData->rate, GST_FORMAT_TIME, (GstSeekFlags)(GST_SEEK_FLAG_INSTANT_RATE_CHANGE),
-    											GST_SEEK_TYPE_NONE, 0,
-												GST_SEEK_TYPE_NONE, 0);
-
-
-    if(gst_element_send_event(playerData->pipeline, seek_event)){
-    	std::cout << "Change Rate " << playerData->rate << std::endl;
-    }
-    else{
-    	std::cout << "could not change rate" << std::endl;
-    }
-//    return gst_element_send_event(playerData->pipeline, seek_event);
+//	PlayerData *playerData = (PlayerData*) _playerData;
+//    GstEvent *seek_event = gst_event_new_seek(playerData->rate, GST_FORMAT_TIME, (GstSeekFlags)(GST_SEEK_FLAG_INSTANT_RATE_CHANGE),
+//    											GST_SEEK_TYPE_NONE, 0,
+//												GST_SEEK_TYPE_NONE, 0);
+//
+//
+//    if(gst_element_send_event(playerData->pipeline, seek_event)){
+//    	std::cout << "Change Rate " << playerData->rate << std::endl;
+//    }
+//    else{
+//    	std::cout << "could not change rate" << std::endl;
+//    }
+////    return gst_element_send_event(playerData->pipeline, seek_event);
 }
 
 static bool updateStateMachine(gpointer _playerData){
 	PlayerData *playerData = (PlayerData*) _playerData;
-	int distance = playerData->sensorMan->getPositionDistance();
-//	std::cout << "distance " << distance << std::endl;
-	switch(distance) {
-	  case 0:
-		//Far
-		  playerData->stateMachine->setTargetPosition(0);
-	    break;
-	  case 1:
-	    //Near
-		  playerData->stateMachine->setTargetPosition(0);
-	    break;
-	  case 2:
-	    //Close
-		  playerData->stateMachine->setTargetPosition(1);
-	    break;
-	  default:
-		  break;
+	if(playerData->sensorMan->getIsInRange()){
+		playerData->stateMachine->setTargetPosition(1);	//Big Bloom
 	}
+	else {
+		playerData->stateMachine->setTargetPosition(0);	//Big Bloom
+	}
+//	std::cout << "distance " << distance << std::endl;
+
 }
 
 
@@ -113,7 +103,7 @@ static void seek_to_frame(gpointer _playerData) {
 
 
     if(gst_element_send_event(playerData->pipeline, seek_event)){
-    	update_rate(playerData);
+//    	update_rate(playerData);	//rate
     	std::cout << "Seeking! StartFrame:" << playerData->stateMachine->currentSegment.startTime << " EndFrame :" << playerData->stateMachine->currentSegment.endTime << " Rate: " << playerData->rate << std::endl;
     }
     else{
@@ -168,10 +158,10 @@ static gboolean query_position(gpointer *_playerData){
 
 			//------------------ChangePlaybackRate--------------------
 			if(frame > playerData->stateMachine->currentSegment.startTime + 1){		//This needs to be fixed, updating rate of playback can only happen after a new seek
-				playerData->sensorMan->getPositionDistance() < 1 ? playerData->rateToQueue = 0.5 : playerData->rateToQueue = 1.0;
+//				playerData->sensorMan->getPositionDistance() < 1 ? playerData->rateToQueue = 0.5 : playerData->rateToQueue = 1.0;	//rate
 				if((playerData->rateToQueue != playerData->rate)){
 					playerData->rate = playerData->rateToQueue;
-					update_rate(playerData);
+//					update_rate(playerData);	//rate
 				}
 			}
 			lastFrame = frame;
@@ -320,7 +310,7 @@ int main(int argc, char *argv[]) {
 //    g_object_set_property(G_OBJECT(playerData->videorate), "max-rate", playerData->rateVal);
 
 
-    std::cout << "Set:Qos for dodgy V4l2Dec" << std::endl;
+//    std::cout << "Set:Qos for dodgy V4l2Dec" << std::endl;
     GValue qos = G_VALUE_INIT;
     g_value_init(&qos, G_TYPE_INT);
     g_value_set_int(&qos, 1);

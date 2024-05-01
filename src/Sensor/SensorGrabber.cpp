@@ -205,10 +205,17 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 	                //close
 	                if((personDistance  <= 0.3 )&& (personDistance != errorNumber) ){
 	                	personDistance = 2;
+	                	mutex.lock();
+	                	isInRange = true;		//hit
+	                	mutex.unlock();
 	                }
 	                //near
 	                if((personDistance  >= 0.3) && (personDistance  < 0.8)){
 	                	personDistance = 1;
+	                	mutex.lock();
+	                	isInRange = true;
+	                	mutex.unlock();
+
 	                }
 	                //far
 	                if((personDistance  > 2.0) || (personDistance == errorNumber)){
@@ -241,6 +248,13 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 int SensorMan::getPositionDistance(){
 	return _sensor.distanceToSend;
 }
+
+bool SensorMan::getIsInRange(){
+	bool _ret = _sensor.isInRange;
+	_sensor.isInRange = false;
+	return _ret;
+}
+
 
 int SensorMan::getPositionValue(){
 	return _sensor.positionToSend;

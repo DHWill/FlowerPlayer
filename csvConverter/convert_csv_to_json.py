@@ -2,7 +2,7 @@ import csv
 import json
 
 def calcPosition(_parentState):
-    positions = {"Left":0, "Front":1, "Right":2, "Idle":1, "PB":1}
+    positions = {"Left":0, "Front":1, "Right":2, "PB":0, "BB":1}
     isEarlyExit = False
     if(len(_parentState.split('_')) > 1):
         currentPosition = _parentState.split('_')[0]
@@ -56,7 +56,7 @@ def csv_to_json(sm_file, videoSM_file, json_file):
                     stateSM = getDataFromClipName(clipName,sm_data)
                     
                     transitionOffset = int(stateSM['Transition Frame']) - int(parentStateSM['From'])
-                    transitionOffset *= 2
+                    #transitionOffset *= 2
                     transitionTime = int(parentStateVid['From']) + transitionOffset
 
                 else:
