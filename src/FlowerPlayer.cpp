@@ -123,6 +123,13 @@ static gboolean on_end_of_seek(GstBus *bus, GstMessage *message, gpointer *_play
 		case GST_MESSAGE_SEGMENT_DONE: {
 			updateStateMachine(_playerData);
 			playerData->stateMachine->updateSegment();
+			//This is because early exits now have early exits to the end ideally REFACTOR
+
+			int startTime = playerData->stateMachine->currentSegment.startTime;
+			int endTime = playerData->stateMachine->currentSegment.endTime;
+			if((endTime == startTime) || (startTime > endTime)){
+				playerData->stateMachine->updateSegment();
+			}
 			seek_to_frame(_playerData);
 			break;
 		}

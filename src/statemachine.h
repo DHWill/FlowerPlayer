@@ -79,6 +79,7 @@ public:
     std::vector<State> readFile();
     std::vector<State> states;
     std::deque<State> tempEarlyExits;
+    State lastEarlyExit;
     void getTempEarlyExits(std::vector<State> _earlyExits);
 
 };

@@ -98,11 +98,19 @@ void StateMachine::setTargetPosition(int position){
 
 //    targetPosition = possiblePositions[position % possiblePositions.size()];	//fix this, currently there are 2 positions for flowers: 3 for animals
 	targetPosition = position;
-	if((tempEarlyExits.size() > 0)){		//Has early exits in queue and wants to change state
+	if(currentState.earlyExits.size() > size_t(0)){		//Has early exits in queue and wants to change state
 		if(targetPosition != currentState.position){
-			std::cout << "QueuingEarlyExit: " << tempEarlyExits[0].name << std::endl;
-			lastTargetPosition = targetPosition;
-			isExitingEarly = true;
+			if(targetPosition == 1){
+				if(tempEarlyExits.size() > size_t(0)){
+					std::cout << "QueuingBigBloom: " << tempEarlyExits[0].name << std::endl;
+				}
+				else {
+					std::cout << "QueuingBigBloom: " << currentState.earlyExits[currentState.earlyExits.size()-1].name << std::endl;
+				}
+
+				lastTargetPosition = targetPosition;
+				isExitingEarly = true;
+			}
 		}
 	}
 }
@@ -137,6 +145,7 @@ void StateMachine::getTempEarlyExits(std::vector<State> _earlyExits){
 	tempEarlyExits.clear();
 	for(size_t i = 0; i < _earlyExits.size(); i ++){
 		tempEarlyExits.push_back(_earlyExits[i]);
+		lastEarlyExit = _earlyExits[i];
 	}
 }
 
@@ -176,7 +185,12 @@ void StateMachine::updateSegment(){
 	}
 
 	if (isExitingEarly) {
-		currentState = tempEarlyExits[0];
+		if(tempEarlyExits.size() > size_t(0)){
+			currentState = tempEarlyExits[0];
+		}
+		else {
+			currentState = currentState.earlyExits[currentState.earlyExits.size()-1];
+		}
 		getTempEarlyExits(currentState.earlyExits);
 		std::cout <<  "NewState:" << currentState.name << "| EarlyExits0: " << tempEarlyExits.size() << std::endl;
 		_segment.startTime = currentState.startTime;
@@ -199,7 +213,7 @@ void StateMachine::updateSegment(){
 		_segment.endTime = currentState.endTime;
 		_segment.name = currentState.name;
 
-		if(tempEarlyExits.size() > size_t(0)){	//has early exits in selected clip
+		if(tempEarlyExits.size() > size_t(0)){	//has early exits in next clip
 			_segment.startTime = currentState.startTime;
 			_segment.endTime = tempEarlyExits[0].transitionFromParent;
 			_segment.name = currentState.name;
@@ -229,6 +243,14 @@ void StateMachine::updateSegment(){
 		}
 //		tempEarlyExits.pop_front();
 	}
+//	//This is because early exits now have early exits to the end ideally REFACTOR
+//	if((_segment.endTime == _segment.startTime) || (_segment.startTime > _segment.endTime)){
+//		currentState = updateState();
+//		getTempEarlyExits(currentState.earlyExits);
+//		_segment.startTime = currentState.startTime;
+//		_segment.endTime = currentState.endTime;
+//		_segment.name = currentState.name;
+//	}
 	currentSegment = _segment;
 	std::cout <<  "start:" << _segment.startTime << "end:" << _segment.endTime << std::endl;
 	return;

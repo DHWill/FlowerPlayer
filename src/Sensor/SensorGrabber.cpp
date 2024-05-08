@@ -210,7 +210,7 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 //	                	mutex.unlock();
 	                }
 	                //near
-	                if((personDistance  >= 0.3) && (personDistance  < 0.8)){
+	                if((personDistance  >= 0.3) && (personDistance  <= 0.8)){
 	                	personDistance = 1;
 	                	mutex.lock();
 	                	isInRange = true;
