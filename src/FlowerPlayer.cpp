@@ -9,7 +9,7 @@
 #include "Sensor/SensorGrabber.h"
 #include <mutex>
 
-gint fps = 60;				//FRAMERATE!
+gint fps = 30;				//FRAMERATE!
 gfloat g_frame_interval = 1./fps*1000;
 gint64 gstInterval = GST_SECOND / fps;
 
@@ -76,9 +76,11 @@ static void update_rate(gpointer _playerData) {
 static bool updateStateMachine(gpointer _playerData){
 	PlayerData *playerData = (PlayerData*) _playerData;
 	if(playerData->sensorMan->getIsInRange()){
+		std::cout << "BigBloom" << std::endl;
 		playerData->stateMachine->setTargetPosition(1);	//Big Bloom
 	}
 	else {
+		std::cout << "NotInShot" << std::endl;
 		playerData->stateMachine->setTargetPosition(0);	//Big Bloom
 	}
 //	std::cout << "distance " << distance << std::endl;
@@ -258,7 +260,7 @@ int main(int argc, char *argv[]) {
     std::cout << "CreateCaps" << std::endl;
     GstCaps *caps = gst_caps_new_simple (
        "video/x-h264",
-       "framerate", GST_TYPE_FRACTION, 60, 1,
+       "framerate", GST_TYPE_FRACTION, 30, 1,
        "pixel-aspect-ratio", GST_TYPE_FRACTION, 1, 1,
        "width", G_TYPE_INT, 1920,
        "height", G_TYPE_INT, 1920,
@@ -299,7 +301,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Set:Sync" << std::endl;
     GValue sync = G_VALUE_INIT;
     g_value_init(&sync, G_TYPE_INT);
-    g_value_set_int(&sync, 0);
+    g_value_set_int(&sync, 1);
     g_object_set_property(G_OBJECT(playerData->videosink), "sync", &sync);
 
 //    std::cout << "Set:Rate" << std::endl;

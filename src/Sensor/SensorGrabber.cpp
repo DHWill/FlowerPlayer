@@ -203,11 +203,11 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 
 
 	                //close
-	                if((personDistance  <= 0.3 )&& (personDistance != errorNumber) ){
+	                if((personDistance  <= 0.3 ) || (personDistance == errorNumber) ){
 	                	personDistance = 2;
-	                	mutex.lock();
-	                	isInRange = true;		//hit
-	                	mutex.unlock();
+//	                	mutex.lock();
+//	                	isInRange = true;		//hit
+//	                	mutex.unlock();
 	                }
 	                //near
 	                if((personDistance  >= 0.3) && (personDistance  < 0.8)){
