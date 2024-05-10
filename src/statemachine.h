@@ -73,12 +73,14 @@ public:
     bool isExtendedState = false;
     bool isActive = false;
     std::vector<int> possiblePositions;
+    int regrowthN;
 
 
 
     std::vector<State> readFile();
     std::vector<State> states;
     std::deque<State> tempEarlyExits;
+    std::deque<State> regrowths;
     State lastEarlyExit;
     void getTempEarlyExits(std::vector<State> _earlyExits);
 

@@ -127,7 +127,7 @@ static gboolean on_end_of_seek(GstBus *bus, GstMessage *message, gpointer *_play
 
 			int startTime = playerData->stateMachine->currentSegment.startTime;
 			int endTime = playerData->stateMachine->currentSegment.endTime;
-			if((endTime == startTime) || (startTime > endTime)){
+			if((endTime == startTime) || (startTime > endTime)){	//this is because the transition clip is now at the end of the main sequence.
 				playerData->stateMachine->updateSegment();
 			}
 			seek_to_frame(_playerData);

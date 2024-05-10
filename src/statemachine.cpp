@@ -90,6 +90,13 @@ bool StateMachine::parseFile(std::string _fileLocation){
     	std::cout << "possiblePositions: " << possiblePositions[j] << std::endl;
     }
 
+
+    for(auto _state : states){
+    	if(_state.position == 2){
+    		regrowths.push_back(_state);
+    	}
+    }
+
     return true;
 }
 
@@ -129,15 +136,24 @@ StateMachine::State StateMachine::updateState(){
     auto rng = std::default_random_engine { rd() };
     std::shuffle(std::begin(states), std::end(states), rng);    //random shuffle and dont get last
 
+    //
     for(size_t i = 0; i < states.size(); i ++){
         State state = states[i];
         if(state.position == currentState.targetPosition){
         	if(state.name != currentState.name){		//State to state not interactive
+        		if(state.position == 2){		//regrowth state
+        			if(regrowths.size() > 0){
+        				state = regrowths[regrowthN % regrowths.size()];
+        				regrowthN ++;
+        				regrowthN %= regrowths.size();
+        			}
+        		}
         		_nextState = state;
-        		break;
+        		return state;
         	}
         }
     }
+
     return _nextState;
 }
 
@@ -222,12 +238,12 @@ void StateMachine::updateSegment(){
 		}
 	}
 	else{
-		_segment.startTime = tempEarlyExits[0].transitionFromParent;// -1?notwork	+1 not work
-		std::cout << currentState.name << "| EarlyExitsLeft: " << tempEarlyExits.size() << " " << tempEarlyExits[0].name << std::endl;
+		_segment.startTime = tempEarlyExits[0].transitionFromParent;// Start From the last Early Exit Transition Time
 		tempEarlyExits.pop_front();
+		std::cout << currentState.name << "| EarlyExitsLeft: " << tempEarlyExits.size() << std::endl ;
 
 
-		if(tempEarlyExits.size() > size_t(0)){		//playToEndOnLastCycle
+		if(tempEarlyExits.size() > size_t(0)){		//playToEndOnLastCycle	This works in the case that the last 'early exit' transition isn't the end of the clip
 			_segment.endTime = tempEarlyExits[0].transitionFromParent;	//-1 not work
 		}
 		else{

@@ -201,32 +201,17 @@ uint8_t  TofImager::loop(VL53L5CX_Configuration* p_dev){
 
 
 
-
-	                //close
-	                if((personDistance  <= 0.3 ) || (personDistance == errorNumber) ){
-	                	personDistance = 2;
-//	                	mutex.lock();
-//	                	isInRange = true;		//hit
-//	                	mutex.unlock();
-	                }
 	                //near
-	                if((personDistance  >= 0.3) && (personDistance  <= 0.8)){
+	                if((personDistance  >= 0.4) && (personDistance  <= 0.8) && (xScore[flattestPosition] > 6)){
 	                	personDistance = 1;
 	                	mutex.lock();
 	                	isInRange = true;
 	                	mutex.unlock();
 
 	                }
-	                //far
-	                if((personDistance  > 2.0) || (personDistance == errorNumber)){
-	                	personDistance = 0;
-	                }
 
-	                if((xScore[flattestPosition] < 6)){
-	                  positionAverage = -1;
-	                  personDistance = -1;
-	                }
 //	                std::cout << personDistance << std::endl;
+//	                std::cout << isInRange << std::endl;
 
 	     mutex.lock();
 	     positionToSend = positionAverage;
