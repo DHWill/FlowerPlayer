@@ -1,0 +1,25 @@
+    {
+        "name": "01_BerryBush_PerpetualBloom",
+        "startTime": 1,			== Starting Frame
+        "endTime": 2402,			== Frame After last Frame
+        "transitionFromParent": 0,		
+        "parentAnimation": "",
+        "parentState": "PB",
+        "position": 0,
+        "targetPosition": 0,
+        "isEarlyExit": false,
+        "isActive": true
+    },
+    
+    {
+        "name": "BerryBush_Explosion25Percent",
+        "startTime": 2402,			== Starting Frame
+        "endTime": 5206,			== Frame Number After Last Frame
+        "transitionFromParent": 600,		== Frame from Parent Clip to Jump to this Clip (Should be matching to above "startTime")
+        "parentAnimation": "01_BerryBush_PerpetualBloom",	== The Absolute Name of the Parent Clip
+        "parentState": "BB",			
+        "position": 1,				== This is a parsed state (BigBloom 'BB' == 1 / Regrowth 'RG' == 2 / PerpetualBloom 'PB' == 0)
+        "targetPosition": 2,			== The next state the clip can transition to (2 == 'RG' Regrowth)
+        "isEarlyExit": true,			== This is an 'Early Exit Clip (Big Bloom)
+        "isActive": true			== This leaves choice for being the next state (if the state macine isActive)
+    },
