@@ -58,7 +58,10 @@ bool StateMachine::parseFile(std::string _fileLocation){
         		_sortEarlyExits.push_back(_earlyExits[e]);
         	}
         }
-        std::sort(_earlyExits.begin(), _earlyExits.end());	//sort early exits on time from start of clip
+//        std::sort(_earlyExits.begin(), _earlyExits.end());	//sort early exits on time from start of clip
+		std::sort(_earlyExits.begin(), _earlyExits.end(),[](const State &a, const State &b) {
+			return a.transitionFromParent < b.transitionFromParent;
+		});
 
         for(size_t e = 0; e < _sortEarlyExits.size(); e ++){
        		std::cout << "adding: " << _sortEarlyExits[e].name << "to: " << _states[s].name << std::endl;

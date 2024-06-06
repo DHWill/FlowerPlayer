@@ -90,7 +90,7 @@ static bool updateStateMachine(gpointer _playerData){
 
 static void seek_to_frame(gpointer _playerData) {
 	PlayerData *playerData = (PlayerData*) _playerData;
-	GstSeekFlags seekFlags = (GstSeekFlags)(GST_SEEK_FLAG_KEY_UNIT | GST_SEEK_FLAG_SNAP_AFTER | GST_SEEK_FLAG_SEGMENT | GST_SEEK_FLAG_TRICKMODE_NO_AUDIO | GST_SEEK_FLAG_TRICKMODE_FORWARD_PREDICTED);
+	GstSeekFlags seekFlags = (GstSeekFlags)(GST_SEEK_FLAG_KEY_UNIT | GST_SEEK_FLAG_SNAP_AFTER | GST_SEEK_FLAG_SEGMENT | GST_SEEK_FLAG_TRICKMODE_NO_AUDIO);
 
 	if(playerData->stateMachine->getIsInit()){
 		seekFlags = (GstSeekFlags)(GST_SEEK_FLAG_KEY_UNIT | GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_SEGMENT | GST_SEEK_FLAG_TRICKMODE_NO_AUDIO | GST_SEEK_FLAG_TRICKMODE_FORWARD_PREDICTED);
@@ -257,7 +257,7 @@ int main(int argc, char *argv[]) {
     GstElement *queue0 = gst_element_factory_make("queue", "queue0");
     GstElement *h264parse = gst_element_factory_make("h264parse", "h264parse");
     GstElement *imxvideoconvert_g2d = gst_element_factory_make("imxvideoconvert_g2d", "imxvideoconvert_g2d");
-    playerData->videosink = gst_element_factory_make("glimagesink", "glimagesink");
+    playerData->videosink = gst_element_factory_make("waylandsink", "waylandsink");
     playerData->decoder = gst_element_factory_make("v4l2h264dec", "v4l2h264dec");
     GstElement *capsfilter = gst_element_factory_make("capsfilter", "capsfilter");
     playerData->textOverlay = gst_element_factory_make("textoverlay", "textoverlay");
@@ -303,7 +303,9 @@ int main(int argc, char *argv[]) {
 
 
     std::cout << "Set:Width/Height" << std::endl;
-    g_object_set_property(G_OBJECT(playerData->videosink), "render-rectangle", &new_dimensions);
+//    g_object_set_property(G_OBJECT(playerData->videosink), "render-rectangle", &new_dimensions);
+    	g_object_set_property(G_OBJECT(playerData->videosink), "window-height",&height);	//this is for waylandsink
+    	g_object_set_property(G_OBJECT(playerData->videosink), "window-width",&width);		//this is for waylandsink
 
     std::cout << "Set:Sync" << std::endl;
     GValue sync = G_VALUE_INIT;
@@ -341,16 +343,16 @@ int main(int argc, char *argv[]) {
     g_object_set_property(G_OBJECT(playerData->textOverlay), "text", playerData->textToOverlay);
 
     std::cout << "AddElements" << std::endl;
-    gst_bin_add_many(GST_BIN(playerData->pipeline), filesrc, playerData->demuxer, h264parse, capsfilter, playerData->decoder, imxvideoconvert_g2d, queue1, playerData->videosink, NULL);
+    gst_bin_add_many(GST_BIN(playerData->pipeline), filesrc, playerData->demuxer, h264parse, capsfilter, playerData->decoder, imxvideoconvert_g2d, queue1, queue0, playerData->videosink, NULL);
 
     /* we link the elements together */
     /* file-source -> ogg-demuxer ~> vorbis-decoder -> converter -> alsa-output */
     std::cout << "Link Filesrc/Demuxer" << std::endl;
-    gst_element_link_many (filesrc, playerData->demuxer, NULL);
+    gst_element_link_many (filesrc, playerData->demuxer, queue0, NULL);
     gst_element_link(playerData->decoder, capsfilter);
     gst_element_link(capsfilter, playerData->videosink);
     std::cout << "Link Rest of elements" << std::endl;
-    gst_element_link_many(h264parse ,playerData->decoder ,imxvideoconvert_g2d, queue1, playerData->videosink, NULL);
+    gst_element_link_many(h264parse ,playerData->decoder, imxvideoconvert_g2d, queue1, playerData->videosink, NULL);
     g_signal_connect(playerData->demuxer, "pad-added", G_CALLBACK (on_pad_added), h264parse);
 
     std::cout << "Set bus Message Watch" << std::endl;
